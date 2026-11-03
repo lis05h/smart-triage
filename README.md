@@ -1,273 +1,197 @@
 # S.M.A.R.T. Drive Triage
 
-An educational generative AI application developed for the Introduction to Generative AI course.
+S.M.A.R.T. Drive Triage is a Streamlit web application that helps a user interpret a pasted `smartctl` S.M.A.R.T. report. It uses a generative-AI model through the Groq API to extract reported measurements, identify potential concerns, assign a triage category, and display evidence-based notes.
 
-## Project overview
+The application is intended as an AI-assisted first review of drive-health information. It does **not** predict when a drive will fail, guarantee drive reliability, or replace professional data recovery or hardware support.
 
-I developed S.M.A.R.T. Drive Triage to make storage-drive reports easier to interpret. S.M.A.R.T. telemetry contains technical measurements, normalized values, and raw attributes whose meanings may depend on the manufacturer.
+## What the application does
 
-My application extracts evidence from a supplied report, assigns a cautious triage category, and presents a readable assessment. I designed it to interpret report text—not to predict failure dates, scan drives, or provide a certified diagnosis.
+The user pastes a S.M.A.R.T. report into the text box and selects **Analyze**. The application then:
 
-This repository contains my completed individual course project.
+1. Sends the report to the Groq API.
+2. Asks the model to return a structured JSON assessment.
+3. Validates that the response has the expected structure.
+4. Displays the assessment category, evidence, recommended actions, and important notes.
 
-## How the application works
+The application supports these assessment categories:
 
-1. A report is entered into the Streamlit interface.
-2. Python checks for empty input before making an API request.
-3. A Groq request asks the model to extract evidence, select an assessment category, and return JSON.
-4. Python validates the response structure, field types, and assessment label.
-5. The interface displays:
-   - Triage assessment.
-   - A predefined category-specific summary.
-   - An evidence table containing reported values and generated interpretations.
-   - Predefined recommended actions.
-   - Important Notes.
+- **No obvious warning in supplied data**
+- **Monitor**
+- **Urgent attention**
+- **Insufficient information**
+- **Invalid input**
 
-I separated the generated analysis from the predefined summaries and actions to control presentation, avoid executable diagnostic advice, and prioritize data protection when concerning findings are reported.
+Recommended actions are supplied by the application rather than generated freely by the model. This reduces the risk of unsafe command-line instructions, device paths, or unsupported diagnostic claims.
 
-The model selects the assessment category. JSON validation checks structure; it does not independently establish whether every interpretation or classification is correct.
+## Generative-AI techniques
 
-## Technology
+The application uses several prompt-engineering techniques:
 
-- Python.
-- Streamlit `1.66.1`.
-- Groq Python library `1.7.0`.
-- Groq model: `openai/gpt-oss-20b`.
+- **Role assignment:** The system prompt assigns the model the role of a cautious storage reliability engineer.
+- **Structured output:** The model is instructed to return JSON with fixed keys.
+- **Few-shot examples:** The prompt includes examples for missing telemetry, concerning sector values, unknown vendor values, normal NVMe values, failed NVMe values, and invalid input.
+- **Explicit constraints:** The prompt limits conclusions to the supplied report, prevents unsupported failure predictions, and separates AI analysis from fixed recommendations.
+- **Parameterization:** The user can adjust temperature and maximum output tokens in the sidebar.
 
-I used Python 3.13 during development. The application is not restricted to Python 3.13; another Python version may be used when compatible with the pinned packages and their dependencies.
+## Analysis settings
 
-The application requires internet access and a private Groq API key. It does not require a database, a locally installed language model, or a separate backend service.
+### Temperature
 
-## Prompt engineering
+Temperature controls the randomness of the model’s output. A lower value makes responses more consistent and predictable, while a higher value allows more variation.
 
-I used two principal prompt techniques:
+S.M.A.R.T. Drive Triage uses a default temperature of **0.2**. This low value supports consistent, cautious, evidence-based interpretation rather than creative variation. The user can adjust it between **0.0 and 1.0**.
 
-- Role assignment: I instructed the model to act as a cautious storage reliability engineer.
-- Few-shot prompting: I included illustrative examples covering missing telemetry, concerning SATA sector counts, unexplained raw encoding, no-warning NVMe reports, warning NVMe reports, and unrelated input.
+### Maximum output tokens
 
-I also defined a structured JSON response and explicit evidence-handling rules. These instructions address:
+A token is a small unit of text, such as a word, part of a word, or punctuation mark. The maximum output-token setting limits the length of the AI response.
 
-- Preserving reported values, including leading zeros.
-- Distinguishing raw values from normalized values and thresholds.
-- Avoiding invented measurements.
-- Treating missing information as unknown rather than zero.
-- Acknowledging vendor-specific encoding.
-- Avoiding unsupported deterioration, wear, and failure-timing claims.
-- Keeping potentially overlapping counts separate.
-- Interpreting NVMe Percentage Used as estimated endurance consumed rather than occupied storage capacity.
-- Describing operating-hour and power-cycle counters neutrally.
-- Keeping warning-temperature and critical-temperature counters distinct.
-- Restricting uncertainty notes to information relevant to the supplied report.
-- Excluding commands, device paths, and diagnostic instructions from generated content.
+The application uses a default limit of **2,048 output tokens**. This provides enough space for a complete structured assessment while preventing excessively long responses. The user can adjust the limit between **1,024 and 4,096** tokens.
 
-I refined these instructions through recorded tests and retained unsuccessful outputs as evidence of the development process.
+If the response reaches the token limit before completion, the application warns the user and does not display an incomplete assessment.
 
-## Generation settings
+## Model and API settings
 
-The sidebar provides:
+The application uses the Groq-hosted `openai/gpt-oss-20b` model. It requests JSON output using `response_format: json_object` and validates the returned JSON before displaying results.
 
-| Setting | Default |
-|---|---:|
-| Temperature | `0.2` |
-| Maximum output tokens | `2048` |
+The Groq client uses a 30-second timeout. Automatic retries are disabled, so the application can show a clear error message instead of silently repeating a failed request.
 
-These are request-time generation settings, not model training or fine-tuning.
+## Requirements
 
-I used the default configuration for the recorded final regression set. I did not conduct a controlled comparison of different parameter values.
+You need:
 
-## Installation on Windows
+- Python 3.10 or newer
+- A Groq API key
+- An internet connection
 
-### 1. Obtain the project files
+## Installation
 
-Download and extract the repository ZIP, or clone the repository.
+1. Download or clone this repository.
 
-Open the folder containing `app.py` and `requirements.txt` in a terminal or editor.
+2. Open a terminal in the project folder.
 
-### 2. Check Python
+3. Create and activate a virtual environment.
 
-List the available Python installations:
+On Windows:
 
-```powershell
-py -0p
+```bash
+python -m venv venv
+venv\Scripts\activate
 ```
 
-Check the default Python version:
+On macOS or Linux:
 
-```powershell
-py --version
+```bash
+python3 -m venv venv
+source venv/bin/activate
 ```
 
-Use a Python installation compatible with the pinned dependencies. Python 3.13 is the recorded development environment, not an exclusive requirement.
+4. Install the required packages:
 
-### 3. Create a virtual environment
-
-Using a compatible default Python installation:
-
-```powershell
-py -m venv .venv
+```bash
+pip install -r requirements.txt
 ```
 
-To select a specific installed version, use its launcher selector. For example:
+## Groq API key setup
 
-```powershell
-py -3.13 -m venv .venv
-```
+The application reads the API key from Streamlit Secrets. Do **not** put your API key directly in `app.py` or upload it to GitHub.
 
-### 4. Install dependencies
-
-```powershell
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
-```
-
-The direct dependencies are pinned in `requirements.txt`:
-
-```text
-streamlit==1.66.1
-groq==1.7.0
-```
-
-These instructions invoke the virtual environment’s Python directly, so PowerShell environment activation is unnecessary.
-
-### 5. Configure the private API key
-
-Create a `.streamlit` folder inside the project folder.
-
-Inside it, create `secrets.toml`:
+1. In the project folder, create a folder named `.streamlit`.
+2. Inside `.streamlit`, create a file named `secrets.toml`.
+3. Add your Groq API key:
 
 ```toml
-GROQ_API_KEY = "YOUR_PRIVATE_GROQ_KEY"
+GROQ_API_KEY = "your-groq-api-key-here"
 ```
 
-Replace the placeholder with a private Groq API key.
+4. Save the file.
 
-Do not commit this file, include the key in screenshots, or place credentials in documentation.
+The `.gitignore` file prevents `secrets.toml` from being uploaded to GitHub.
 
-The repository’s `.gitignore` should contain:
+## Running the application
 
-```gitignore
-.venv/
-.streamlit/secrets.toml
-__pycache__/
+With the virtual environment active, run:
+
+```bash
+streamlit run app.py
 ```
 
-For manual uploads, check the selected files explicitly. Do not rely on `.gitignore` to protect a manually selected secrets file.
+Streamlit will display a local web address, usually:
 
-### 6. Launch the application
-
-```powershell
-.\.venv\Scripts\python.exe -m streamlit run app.py
+```text
+http://localhost:8501
 ```
 
-Open the local address shown in the terminal.
+Open that address in your browser.
 
-Keep the terminal running while using the application. Stop it with `Ctrl+C`.
+## How to use the application
 
-## Using the application
+1. Paste a `smartctl` S.M.A.R.T. report into the text area.
+2. Remove serial numbers and other identifying information before submitting it.
+3. Optionally adjust **Temperature** and **Maximum output tokens** in the sidebar.
+4. Select **Analyze**.
+5. Review the assessment, evidence, recommended actions, and important notes.
 
-1. Remove serial numbers and other identifying information from the report.
-2. Paste the report into the S.M.A.R.T. report text box.
-3. Start with temperature `0.2` and maximum output tokens `2048`.
-4. Click Analyze.
-5. Read the assessment, evidence, recommended actions, and Important Notes together.
+Example input:
 
-The available assessment categories are:
+```text
+smartctl 7.4
+=== START OF INFORMATION SECTION ===
+Model Number: EXAMPLE NVME SSD
+=== START OF SMART DATA SECTION ===
+SMART overall-health self-assessment test result: PASSED
+Critical Warning: 0x00
+Temperature: 35 Celsius
+Available Spare: 100%
+Available Spare Threshold: 10%
+Percentage Used: 3%
+Power Cycles: 150
+Power On Hours: 2400
+Unsafe Shutdowns: 0
+Media and Data Integrity Errors: 0
+Error Information Log Entries: 0
+```
 
-- No obvious warning in supplied data.
-- Monitor.
-- Urgent attention.
-- Insufficient information.
-- Invalid input.
+## Error handling
 
-“Urgent attention” identifies findings that warrant prompt data protection and follow-up. It does not predict when a drive will fail.
+The application handles common problems without crashing:
 
-“No obvious warning in supplied data” is restricted to the supplied measurements. It is not a guarantee of overall reliability.
+- Empty input: asks the user to paste a S.M.A.R.T. report.
+- Missing API key: displays setup instructions.
+- Invalid API key: asks the user to check the key.
+- Rate limit: asks the user to wait before trying again.
+- Connection error or timeout: asks the user to try again.
+- Incomplete or invalid AI response: displays an error instead of showing incomplete results.
+- Token-limit response: warns the user and avoids displaying an incomplete assessment.
 
-## Data handling and application boundaries
+## Limitations
 
-The entered report text is sent to Groq for analysis. Identifying details should be removed before submission.
+- The application analyzes only the S.M.A.R.T. information supplied in the pasted report.
+- A single report is a snapshot and cannot establish a deterioration trend.
+- The application cannot predict an exact failure date or remaining drive lifetime.
+- A `PASSED` overall-health result does not guarantee that a drive is reliable.
+- Vendor-specific raw values may require manufacturer documentation and are not guessed by the application.
+- AI assessments can be incorrect and must not be treated as professional hardware diagnostics.
 
-The application:
+## Documentation
 
-- Processes pasted text.
-- Does not scan drives.
-- Does not execute diagnostic commands.
-- Does not change hardware settings.
-- Does not maintain a report-history database.
-- Does not provide a built-in report-export feature.
+- `SMART_Drive_Triage_Final_Report.pdf` contains the project report.
+- `SMART_Drive_Triage_Testing_Appendix_Final.pdf` contains the testing definitions, results, and original output evidence.
 
-The screenshots and PDFs used in the testing record are documentation evidence, not application export functionality.
+## Repository contents
 
-## Input and response handling
+```text
+app.py
+README.md
+requirements.txt
+.gitignore
+SMART_Drive_Triage_Final_Report.pdf
+SMART_Drive_Triage_Testing_Appendix_Final.pdf
+```
 
-I implemented handling for:
+## Author
 
-- Empty input.
-- Missing or empty API credentials.
-- Authentication failures.
-- Connection failures.
-- Rate limits.
-- API failures.
-- Invalid JSON or unexpected response structure.
-- Unrecognized assessment labels.
-- Output truncation.
-
-When the output-token limit is reached, the application displays a warning rather than an incomplete assessment.
-
-Implemented handling and experimentally verified behavior are distinguished in the testing documentation. I do not describe every implemented handler as independently tested.
-
-## Testing and Results
-
-I tested synthetic SATA HDD and NVMe SSD reports, missing-telemetry input, and unrelated text.
-
-My development record includes:
-
-- Initial unsuccessful outputs.
-- Prompt revisions and retests.
-- Repeated runs with unchanged input.
-- Changed-value tests.
-- Counter-interpretation checks.
-- Recommendation-order checks.
-- Interface-heading checks.
-- A final six-case regression set.
-
-The final regression set covered:
-
-| Test case | Observed assessment |
-|---|---|
-| Concerning SATA sector counters | Urgent attention |
-| Unexplained vendor-specific raw value | Insufficient information |
-| No-warning NVMe report | No obvious warning in supplied data |
-| Warning NVMe report with spare below threshold | Urgent attention |
-| Missing telemetry | Insufficient information |
-| Unrelated request | Invalid input |
-
-Each case met its predefined acceptance checks in the recorded final output.
-
-These results represent a targeted manual regression set, not a general diagnostic-accuracy score. Some test cases resemble the prompt examples. Earlier repeated runs used preceding prompt revisions and are not repeated trials of the final prompt.
-
-The testing appendix includes input definitions, individual test records, observed output excerpts, and supporting captures. Historical observations without a confirmed original-run mapping are identified separately rather than assigned invented details.
-
-## Assessment Scope
-
-I designed the application to interpret the supplied report as a snapshot. A single report does not establish a deterioration trend or predict failure timing.
-
-Raw attributes may require manufacturer-specific documentation. I instructed the model to preserve unexplained values rather than invent their meanings.
-
-The application’s validator checks response structure and field types. It does not independently verify every measurement, interpretation, category, or generated statement against a manufacturer database.
-
-Predefined summaries and recommended actions control those sections of the interface, but their selection still depends on the model’s assessment category. Generated evidence interpretations and notes should be read alongside the supplied values.
-
-An overall `PASSED` result does not establish that every attribute is normal or guarantee drive reliability.
-
-## Project materials
-
-| File or document | Purpose |
-|---|---|
-| `app.py` | Application, prompt, API integration, validation, and display logic |
-| `requirements.txt` | Pinned direct dependencies |
-| `.gitignore` | Local-environment and credential exclusions |
-| `README.md` | Project overview, installation, and usage |
-| Project report PDF | Purpose, implementation, prompt techniques, design decisions, and testing summary |
-| Testing appendix | Detailed experiment history and supporting evidence |
-
-I completed this application as an individual project for the Introduction to Generative AI course. The accompanying report and testing appendix document the submitted version and the work I performed.
+**Lis Hadërgjonaj**  
+Neptun code: **B5KCCW**  
+University of Debrecen — Faculty of Informatics  
+Computer Science Engineering BSc  
+Introduction to Generative AI — Individual project
