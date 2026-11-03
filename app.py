@@ -6,6 +6,25 @@ st.set_page_config(page_title="S.M.A.R.T. Drive Triage")
 st.title("S.M.A.R.T. Drive Triage")
 st.write("Paste a smartctl report to analyze potential drive problems.")
 
+with st.sidebar:
+    st.header("Analysis settings")
+
+    temperature = st.slider(
+        "Temperature",
+        min_value=0.0,
+        max_value=1.0,
+        value=0.2,
+        step=0.1,
+    )
+
+    max_output_tokens = st.slider(
+        "Maximum output tokens",
+        min_value=1024,
+        max_value=4096,
+        value=2048,
+        step=512,
+    )
+
 report = st.text_area(
     "S.M.A.R.T. report",
     height=300,
@@ -39,8 +58,8 @@ if st.button("Analyze"):
                         },
                         {"role": "user", "content": report},
                     ],
-                    temperature=0.2,
-                    max_completion_tokens=2048,
+                    temperature=temperature,
+                    max_completion_tokens=max_output_tokens,
                 )
 
             result = response.choices[0].message.content
