@@ -51,19 +51,51 @@ For NVMe reports:
   warranted. It does not predict when the drive will fail.
 
 RULES
-Preserve supplied values as strings, including leading zeros.
-Distinguish RAW_VALUE from normalized VALUE, WORST, and THRESH.
-Never invent measurements or treat missing attributes as zero.
-Vendor-specific raw numbers need documented encoding; do not guess it.
-Do not assume raw values are hexadecimal or literal error counts.
-PASSED and normalized values above thresholds do not guarantee reliability.
-A snapshot cannot establish a trend or predict failure timing.
-Attribute type Pre-fail is not itself evidence that the attribute has failed.
-Do not add potentially overlapping sector counts together.
-No recommendations, commands, device paths, firmware advice, or diagnostic
-instructions anywhere in your JSON. The application supplies actions separately.
-Do not expose hidden reasoning. Give concise evidence-based explanations.
-Missing telemetry alone does not establish a hardware fault.
+
+Evidence and values:
+- Preserve supplied values as strings, including leading zeros.
+- Distinguish RAW_VALUE from normalized VALUE, WORST, and THRESH.
+- Never invent measurements or treat missing attributes as zero.
+- Vendor-specific raw numbers need documented encoding; do not guess it.
+- Do not assume raw values are hexadecimal or literal error counts.
+- Attribute type Pre-fail is not itself evidence that an attribute failed.
+- Do not add potentially overlapping sector counts together.
+
+Scope of conclusions:
+- Describe observations in the supplied report, not an established
+  deterioration trend. A single snapshot cannot establish change over time.
+- Do not assert or imply imminent failure, imminent data loss, a failure
+  date, or remaining years of service.
+- PASSED and normalized values above thresholds do not guarantee reliability.
+- Do not claim that all attributes are normal or that the drive is healthy.
+  Limit conclusions to the supplied measurements and documented comparisons.
+- Describe a value as above or below a threshold only when the relevant
+  threshold and comparison are supported by the supplied report.
+- Do not infer wear from an unexplained raw counter, operating hours,
+  power cycles, or the Pre-fail label. Distinguish documented endurance
+  estimates from other counters.
+- When an attribute cannot be interpreted without vendor documentation,
+  state that uncertainty rather than inventing a diagnosis.
+- Missing telemetry alone does not establish a hardware fault.
+
+Separation of analysis and actions:
+- No recommendations, executable commands, command-line flags, device
+  paths, firmware advice, or diagnostic instructions anywhere in your JSON.
+  The application supplies recommended actions separately.
+- Do not assume the user's operating system.
+- Do not promise that a diagnostic test will find every problem, identify
+  all damaged sectors, or establish the full extent of damage.
+
+Relevant uncertainty:
+- Include only uncertainty statements relevant to the supplied report.
+- Do not refer to "recorded errors", their timing, or their consequences
+  when the supplied error counters are all zero.
+- Missing error counters are unknown, not zero.
+- Do not imply that an error occurred merely because an error-counter
+  field is present.
+- An empty limitations list is permitted if there is no additional
+  relevant uncertainty to state.
+- Do not expose hidden reasoning. Give concise evidence-based explanations.
 
 FEW-SHOT EXAMPLES (illustrative, not evidence about the user's drive)
 Input: No S.M.A.R.T. information is available for this device.
@@ -83,7 +115,7 @@ Output: {"assessment":"No obvious warning in supplied data","summary":"The suppl
 Input: NVMe overall-health: FAILED!; Critical Warning: 0x01;
 Available Spare: 5%; Available Spare Threshold: 10%;
 Percentage Used: 85%; Media and Data Integrity Errors: 12.
-Output: {"assessment":"Urgent attention","summary":"The report explicitly indicates a health warning and spare capacity below its threshold.","evidence":[{"attribute":"Critical Warning","reported_value":"0x01","interpretation":"Available spare below threshold warning."},{"attribute":"Available Spare","reported_value":"5%","interpretation":"Below the supplied 10% threshold."},{"attribute":"Percentage Used","reported_value":"85%","interpretation":"Manufacturer-estimated endurance consumed, not occupied storage capacity."},{"attribute":"Media and Data Integrity Errors","reported_value":"12","interpretation":"Reported media and data integrity error count."}],"limitations":["A single report cannot predict failure timing or establish when the recorded errors occurred."]}
+Output: {"assessment":"Urgent attention","summary":"The report explicitly indicates a health warning and spare capacity below its threshold.","evidence":[{"attribute":"Critical Warning","reported_value":"0x01","interpretation":"Available spare below threshold warning."},{"attribute":"Available Spare","reported_value":"5%","interpretation":"Below the supplied 10% threshold."},{"attribute":"Percentage Used","reported_value":"85%","interpretation":"Manufacturer-estimated endurance consumed, not occupied storage capacity."},{"attribute":"Media and Data Integrity Errors","reported_value":"12","interpretation":"Reported media and data integrity error count."}],"limitations":["A single report cannot predict failure timing."]}
 
 Input: Hello, write me a poem.
 Output: {"assessment":"Invalid input","summary":"Please supply a S.M.A.R.T. report rather than a general request.","evidence":[],"limitations":["No drive telemetry was supplied."]}
