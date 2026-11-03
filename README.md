@@ -1,82 +1,148 @@
 # S.M.A.R.T. Drive Triage
 
-An educational generative AI application for the Introduction to Generative AI course.
+An educational generative AI application developed for the Introduction to Generative AI course.
 
-## Problem and purpose
+## Project overview
 
-Pasted S.M.A.R.T. telemetry can be difficult to interpret, particularly when raw attributes have vendor-specific meanings. This application extracts reported evidence, assigns a cautious triage category, and presents a plain-language report. It is not a failure-prediction system or a certified diagnostic tool.
+I developed S.M.A.R.T. Drive Triage to make storage-drive reports easier to interpret. S.M.A.R.T. telemetry contains technical measurements, normalized values, and raw attributes whose meanings may depend on the manufacturer.
 
-## How it works
+My application extracts evidence from a supplied report, assigns a cautious triage category, and presents a readable assessment. I designed it to interpret report text—not to predict failure dates, scan drives, or provide a certified diagnosis.
 
-1. The user pastes a text report into a Streamlit page.
-2. Python rejects empty input before making an API call.
-3. One Groq request asks the model to extract evidence, categorize concerns, and describe limitations as JSON.
-4. Python validates the response structure and assessment label.
-5. The application displays the extracted evidence and AI-generated interpretations and limitations.
-6. Python supplies predefined summaries and recommended actions for the selected category.
+This repository contains my completed individual course project.
 
-JSON validation checks structure, not whether the model's interpretation is correct. There is no independent numeric parser or vendor database. The model selects the category; predefined text does not independently verify that selection.
+## How the application works
+
+1. A report is entered into the Streamlit interface.
+2. Python checks for empty input before making an API request.
+3. A Groq request asks the model to extract evidence, select an assessment category, and return JSON.
+4. Python validates the response structure, field types, and assessment label.
+5. The interface displays:
+   - Triage assessment.
+   - A predefined category-specific summary.
+   - An evidence table containing reported values and generated interpretations.
+   - Predefined recommended actions.
+   - Important Notes.
+
+I separated the generated analysis from the predefined summaries and actions to control presentation, avoid executable diagnostic advice, and prioritize data protection when concerning findings are reported.
+
+The model selects the assessment category. JSON validation checks structure; it does not independently establish whether every interpretation or classification is correct.
 
 ## Technology
 
-- Python 3.13 (tested)
-- Streamlit 1.66.1
-- Groq Python library 1.7.0
-- Groq model: `openai/gpt-oss-20b`
+- Python.
+- Streamlit `1.66.1`.
+- Groq Python library `1.7.0`.
+- Groq model: `openai/gpt-oss-20b`.
 
-No database, local AI model, Git installation, or separate backend service is required for the browser-upload workflow described below. Internet access and a Groq API key are required for analysis. API availability and account quotas depend on the provider.
+I used Python 3.13 during development. The application is not restricted to Python 3.13; another Python version may be used when compatible with the pinned packages and their dependencies.
+
+The application requires internet access and a private Groq API key. It does not require a database, a locally installed language model, or a separate backend service.
 
 ## Prompt engineering
 
-- Role/persona: a cautious storage reliability engineer.
-- Few-shot prompting: examples of missing telemetry, concerning sector counts, unknown raw encoding, and non-report input.
-- Structured output: the model returns JSON for validation and display.
-- Evidence constraints: preserve values, distinguish raw from normalized values, avoid invented measurements, and acknowledge uncertain vendor-specific encoding.
+I used two principal prompt techniques:
 
-The sidebar exposes temperature and maximum completion tokens. These are request-time generation settings, not model training or fine-tuning. They may affect response variability and length; low temperature does not guarantee correctness. The token budget may also be consumed by model reasoning, so a short budget can leave little visible output.
+- Role assignment: I instructed the model to act as a cautious storage reliability engineer.
+- Few-shot prompting: I included illustrative examples covering missing telemetry, concerning SATA sector counts, unexplained raw encoding, no-warning NVMe reports, warning NVMe reports, and unrelated input.
 
-## Setup on Windows 11
+I also defined a structured JSON response and explicit evidence-handling rules. These instructions address:
 
-### 1. Get the project files
+- Preserving reported values, including leading zeros.
+- Distinguishing raw values from normalized values and thresholds.
+- Avoiding invented measurements.
+- Treating missing information as unknown rather than zero.
+- Acknowledging vendor-specific encoding.
+- Avoiding unsupported deterioration, wear, and failure-timing claims.
+- Keeping potentially overlapping counts separate.
+- Interpreting NVMe Percentage Used as estimated endurance consumed rather than occupied storage capacity.
+- Describing operating-hour and power-cycle counters neutrally.
+- Keeping warning-temperature and critical-temperature counters distinct.
+- Restricting uncertainty notes to information relevant to the supplied report.
+- Excluding commands, device paths, and diagnostic instructions from generated content.
 
-Sign in to GitHub and open this repository. Select **Code > Download ZIP**, then extract it. Choose the extracted folder containing `app.py` and `requirements.txt` as the project folder. Open that folder in VS Code using **File > Open Folder**.
+I refined these instructions through recorded tests and retained unsuccessful outputs as evidence of the development process.
 
-Alternatively, reuse the existing `C:\Users\User\smart-triage` folder if it already contains your latest files. Do not overwrite newer local work with an older download.
+## Generation settings
 
-### 2. Open a terminal in the project folder
+The sidebar provides:
 
-In VS Code, select **Terminal > New Terminal**. Confirm the terminal path is the folder containing `app.py`.
+| Setting | Default |
+|---|---:|
+| Temperature | `0.2` |
+| Maximum output tokens | `2048` |
 
-Check installed Python versions:
+These are request-time generation settings, not model training or fine-tuning.
+
+I used the default configuration for the recorded final regression set. I did not conduct a controlled comparison of different parameter values.
+
+## Installation on Windows
+
+### 1. Obtain the project files
+
+Download and extract the repository ZIP, or clone the repository.
+
+Open the folder containing `app.py` and `requirements.txt` in a terminal or editor.
+
+### 2. Check Python
+
+List the available Python installations:
 
 ```powershell
 py -0p
 ```
 
-These instructions use Python 3.13. If it is absent, arrange a permitted per-user Python installation rather than assuming Python 3.9 can run the pinned packages.
+Check the default Python version:
 
-### 3. Create the environment and install packages
+```powershell
+py --version
+```
 
-Run these commands once for each new project folder on a computer:
+Use a Python installation compatible with the pinned dependencies. Python 3.13 is the recorded development environment, not an exclusive requirement.
+
+### 3. Create a virtual environment
+
+Using a compatible default Python installation:
+
+```powershell
+py -m venv .venv
+```
+
+To select a specific installed version, use its launcher selector. For example:
 
 ```powershell
 py -3.13 -m venv .venv
+```
+
+### 4. Install dependencies
+
+```powershell
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
 
-Do not copy `.venv` between computers. No PowerShell activation or execution-policy change is needed because the commands invoke the environment's Python directly.
+The direct dependencies are pinned in `requirements.txt`:
 
-### 4. Configure the private API key
+```text
+streamlit==1.66.1
+groq==1.7.0
+```
 
-Create a `.streamlit` folder inside the project folder. Inside it, create `secrets.toml` containing:
+These instructions invoke the virtual environment’s Python directly, so PowerShell environment activation is unnecessary.
+
+### 5. Configure the private API key
+
+Create a `.streamlit` folder inside the project folder.
+
+Inside it, create `secrets.toml`:
 
 ```toml
 GROQ_API_KEY = "YOUR_PRIVATE_GROQ_KEY"
 ```
 
-Use your own key, not the placeholder. Never upload this file, include it in screenshots, or paste it into chat. It is plain text on the computer, not encrypted storage. On shared computers, do not leave the key accessible to other people. Keep your recoverable copy in an approved password manager or other private storage, not in this repository.
+Replace the placeholder with a private Groq API key.
 
-The project's `.gitignore` should contain:
+Do not commit this file, include the key in screenshots, or place credentials in documentation.
+
+The repository’s `.gitignore` should contain:
 
 ```gitignore
 .venv/
@@ -84,63 +150,124 @@ The project's `.gitignore` should contain:
 __pycache__/
 ```
 
-For manual browser uploads, explicitly select only intended non-secret files. Do not rely on `.gitignore` to protect a manually selected upload.
+For manual uploads, check the selected files explicitly. Do not rely on `.gitignore` to protect a manually selected secrets file.
 
-### 5. Start the application
+### 6. Launch the application
 
 ```powershell
 .\.venv\Scripts\python.exe -m streamlit run app.py
 ```
 
-Open the local address printed in the terminal. Keep that terminal running while using the application. Stop the application with `Ctrl+C`.
+Open the local address shown in the terminal.
+
+Keep the terminal running while using the application. Stop it with `Ctrl+C`.
 
 ## Using the application
 
 1. Remove serial numbers and other identifying information from the report.
-2. Paste the report into the text box.
+2. Paste the report into the S.M.A.R.T. report text box.
 3. Start with temperature `0.2` and maximum output tokens `2048`.
-4. Click **Analyze**.
-5. Read the assessment, evidence, recommended actions, and limitations together.
+4. Click Analyze.
+5. Read the assessment, evidence, recommended actions, and Important Notes together.
 
-The application analyzes pasted text only. It does not scan drives, execute diagnostic commands, or change hardware settings. The submitted text is sent to Groq. The application has no scan-history database or report-export feature.
+The available assessment categories are:
 
-## Continue on another computer
+- No obvious warning in supplied data.
+- Monitor.
+- Urgent attention.
+- Insufficient information.
+- Invalid input.
 
-Before leaving:
+“Urgent attention” identifies findings that warrant prompt data protection and follow-up. It does not predict when a drive will fail.
 
-1. Save your changes in VS Code.
-2. Upload changed non-secret project files to the same locations in the GitHub repository and commit them.
-3. Confirm the uploaded files contain the latest changes.
-4. Stop the application. Sign out of shared-browser sessions and protect or remove locally stored credentials as appropriate.
+“No obvious warning in supplied data” is restricted to the supplied measurements. It is not a guarantee of overall reliability.
 
-On the next computer:
+## Data handling and application boundaries
 
-1. Download the latest repository files and open the project folder.
-2. Check Python availability.
-3. Create `.venv` and install `requirements.txt` if that project folder has no working environment yet.
-4. Recreate the private secrets file if needed.
-5. Start the application with the command above.
+The entered report text is sent to Groq for analysis. Identifying details should be removed before submission.
 
-GitHub browser uploads are manual backups, not automatic synchronization. If reusing an existing folder, update the changed source/document files from GitHub without copying environments or exposing secrets.
+The application:
 
-## Error handling
+- Processes pasted text.
+- Does not scan drives.
+- Does not execute diagnostic commands.
+- Does not change hardware settings.
+- Does not maintain a report-history database.
+- Does not provide a built-in report-export feature.
 
-The application includes handling for empty input, missing or empty API keys, authentication errors, connection failures/timeouts, rate limits, API status errors, invalid structured responses, and output truncation. Implemented handlers should not be described as live-tested unless recorded in `TESTING.md`.
+The screenshots and PDFs used in the testing record are documentation evidence, not application export functionality.
 
-If the response is cut off, increase the output token setting and retry. For a rate limit, wait before trying again. For a connection error, restore internet access and retry. Never share credentials when reporting an error.
+## Input and response handling
 
-## Evaluation and limitations
+I implemented handling for:
 
-See `TESTING.md` for manual tests and the prompt-refinement record. Evaluation used a small synthetic SATA HDD test set; it does not establish general diagnostic accuracy or comprehensive HDD, SSD, or NVMe support.
+- Empty input.
+- Missing or empty API credentials.
+- Authentication failures.
+- Connection failures.
+- Rate limits.
+- API failures.
+- Invalid JSON or unexpected response structure.
+- Unrecognized assessment labels.
+- Output truncation.
 
-Earlier free-text outputs sometimes included commands and unsupported failure-timing claims despite prompt rules. The revised design uses validated JSON plus predefined summaries and actions. AI-generated evidence interpretations and limitations can still be wrong or omit relevant details. A single snapshot cannot establish a deterioration trend or predict a failure date, and a PASSED result cannot guarantee reliability.
+When the output-token limit is reached, the application displays a warning rather than an incomplete assessment.
 
-## Project files
+Implemented handling and experimentally verified behavior are distinguished in the testing documentation. I do not describe every implemented handler as independently tested.
 
-- `app.py`: application, prompt, response validation, and display logic.
-- `requirements.txt`: pinned direct dependencies.
-- `.gitignore`: exclusions for local environments and credentials.
-- `README.md`: overview, setup, use, and cross-computer workflow.
-- `TESTING.md`: test results, limitations, and refinement history.
+## Testing and Results
 
-The final submission also includes a separate project-documentation PDF. That document explains the implementation and design decisions; it is not merely a browser printout of one analysis.
+I tested synthetic SATA HDD and NVMe SSD reports, missing-telemetry input, and unrelated text.
+
+My development record includes:
+
+- Initial unsuccessful outputs.
+- Prompt revisions and retests.
+- Repeated runs with unchanged input.
+- Changed-value tests.
+- Counter-interpretation checks.
+- Recommendation-order checks.
+- Interface-heading checks.
+- A final six-case regression set.
+
+The final regression set covered:
+
+| Test case | Observed assessment |
+|---|---|
+| Concerning SATA sector counters | Urgent attention |
+| Unexplained vendor-specific raw value | Insufficient information |
+| No-warning NVMe report | No obvious warning in supplied data |
+| Warning NVMe report with spare below threshold | Urgent attention |
+| Missing telemetry | Insufficient information |
+| Unrelated request | Invalid input |
+
+Each case met its predefined acceptance checks in the recorded final output.
+
+These results represent a targeted manual regression set, not a general diagnostic-accuracy score. Some test cases resemble the prompt examples. Earlier repeated runs used preceding prompt revisions and are not repeated trials of the final prompt.
+
+The testing appendix includes input definitions, individual test records, observed output excerpts, and supporting captures. Historical observations without a confirmed original-run mapping are identified separately rather than assigned invented details.
+
+## Assessment Scope
+
+I designed the application to interpret the supplied report as a snapshot. A single report does not establish a deterioration trend or predict failure timing.
+
+Raw attributes may require manufacturer-specific documentation. I instructed the model to preserve unexplained values rather than invent their meanings.
+
+The application’s validator checks response structure and field types. It does not independently verify every measurement, interpretation, category, or generated statement against a manufacturer database.
+
+Predefined summaries and recommended actions control those sections of the interface, but their selection still depends on the model’s assessment category. Generated evidence interpretations and notes should be read alongside the supplied values.
+
+An overall `PASSED` result does not establish that every attribute is normal or guarantee drive reliability.
+
+## Project materials
+
+| File or document | Purpose |
+|---|---|
+| `app.py` | Application, prompt, API integration, validation, and display logic |
+| `requirements.txt` | Pinned direct dependencies |
+| `.gitignore` | Local-environment and credential exclusions |
+| `README.md` | Project overview, installation, and usage |
+| Project report PDF | Purpose, implementation, prompt techniques, design decisions, and testing summary |
+| Testing appendix | Detailed experiment history and supporting evidence |
+
+I completed this application as an individual project for the Introduction to Generative AI course. The accompanying report and testing appendix document the submitted version and the work I performed.
