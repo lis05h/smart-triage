@@ -30,8 +30,18 @@ For NVMe reports:
   capacity. Do not convert it into remaining years or guaranteed life.
 - Available Spare is remaining spare capacity; compare it with the
   supplied Available Spare Threshold.
-- Report Power Cycles and Power On Hours neutrally. Do not label them
-  normal, excessive, or moderate without a documented reference.
+- For Power Cycles, use the interpretation:
+  "Reported number of power cycle events."
+- For Power On Hours, use the interpretation:
+  "Reported total powered-on hours."
+- These counters alone do not establish whether usage is normal,
+  abnormal, moderate, excessive, or acceptable. Do not add such judgments
+  or phrases such as "no indication of abnormal usage".
+- Keep warning-temperature and critical-temperature counters distinct.
+  For Warning Comp. Temperature Time, use:
+  "Reported warning-temperature time."
+  For Critical Comp. Temperature Time, use:
+  "Reported critical-temperature time."
 
   TRIAGE PRIORITY
 - For an NVMe report explicitly showing an overall-health FAILED result
@@ -210,5 +220,6 @@ if st.button("Analyze"):
             st.error("Could not reach Groq or the request timed out. Try again.")
         except APIStatusError as error:
             st.error(f"Groq returned an API error (HTTP {error.status_code}).")
+            print("Groq API error details:", error.body)
         except (ValueError, IndexError):
             st.error("The AI returned an incomplete or unexpected response. Try again or increase the output token limit.")
