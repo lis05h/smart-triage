@@ -25,6 +25,21 @@ evidence: a list of objects with string keys attribute, reported_value,
 interpretation. Use an empty list if no measurements exist.
 limitations: a list of short strings describing missing information and uncertainty.
 
+For NVMe reports:
+- Percentage Used estimates endurance consumed, not occupied storage
+  capacity. Do not convert it into remaining years or guaranteed life.
+- Available Spare is remaining spare capacity; compare it with the
+  supplied Available Spare Threshold.
+- Report Power Cycles and Power On Hours neutrally. Do not label them
+  normal, excessive, or moderate without a documented reference.
+
+  TRIAGE PRIORITY
+- For an NVMe report explicitly showing an overall-health FAILED result
+  and Available Spare below the supplied Available Spare Threshold,
+  choose "Urgent attention", not "Monitor".
+- This category means prompt data-protection and follow-up actions are
+  warranted. It does not predict when the drive will fail.
+
 RULES
 Preserve supplied values as strings, including leading zeros.
 Distinguish RAW_VALUE from normalized VALUE, WORST, and THRESH.
@@ -50,6 +65,15 @@ Output: {"assessment":"Urgent attention","summary":"The supplied pending and unc
 
 Input: Unknown vendor: Raw_Read_Error_Rate RAW_VALUE=123456789.
 Output: {"assessment":"Insufficient information","summary":"The raw encoding is unknown; this value alone cannot establish drive health.","evidence":[{"attribute":"Raw_Read_Error_Rate","reported_value":"RAW_VALUE=123456789","interpretation":"Not interpretable as a literal failed-read count without vendor documentation."}],"limitations":["Other attributes and vendor-specific documentation are missing."]}
+
+Input: NVMe Percentage Used: 3%; Available Spare: 100%;
+Available Spare Threshold: 10%.
+Output: {"assessment":"No obvious warning in supplied data","summary":"The supplied endurance and spare-capacity fields show no obvious warning.","evidence":[{"attribute":"Percentage Used","reported_value":"3%","interpretation":"Manufacturer-estimated endurance consumed, not occupied storage capacity."},{"attribute":"Available Spare","reported_value":"100%","interpretation":"Reported spare capacity is above the supplied 10% threshold."}],"limitations":["These fields do not predict remaining years or guarantee reliability."]}
+
+Input: NVMe overall-health: FAILED!; Critical Warning: 0x01;
+Available Spare: 5%; Available Spare Threshold: 10%;
+Percentage Used: 85%; Media and Data Integrity Errors: 12.
+Output: {"assessment":"Urgent attention","summary":"The report explicitly indicates a health warning and spare capacity below its threshold.","evidence":[{"attribute":"Critical Warning","reported_value":"0x01","interpretation":"Available spare below threshold warning."},{"attribute":"Available Spare","reported_value":"5%","interpretation":"Below the supplied 10% threshold."},{"attribute":"Percentage Used","reported_value":"85%","interpretation":"Manufacturer-estimated endurance consumed, not occupied storage capacity."},{"attribute":"Media and Data Integrity Errors","reported_value":"12","interpretation":"Reported media and data integrity error count."}],"limitations":["A single report cannot predict failure timing or establish when the recorded errors occurred."]}
 
 Input: Hello, write me a poem.
 Output: {"assessment":"Invalid input","summary":"Please supply a S.M.A.R.T. report rather than a general request.","evidence":[],"limitations":["No drive telemetry was supplied."]}
@@ -172,7 +196,7 @@ if st.button("Analyze"):
                 st.header("Recommended actions")
                 for number, action in enumerate(ACTIONS[data["assessment"]], 1):
                     st.write(f"{number}. {action}")
-                st.header("Limitations")
+                st.header("Important Notes")
                 for item in data["limitations"]:
                     st.write(f"- {item}")
                 st.caption("This AI assessment can be wrong and cannot guarantee drive reliability.")
