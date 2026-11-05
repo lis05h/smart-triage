@@ -4,6 +4,10 @@ S.M.A.R.T. Drive Triage is a Streamlit web application that helps a user interpr
 
 The application is intended as an AI-assisted first review of drive-health information. It does **not** predict when a drive will fail, guarantee drive reliability, or replace professional data recovery or hardware support.
 
+## GitHub Repository
+
+https://github.com/lis05h/smart-triage
+
 ## What the application does
 
 The user pastes a S.M.A.R.T. report into the text box and selects **Analyze**. The application then:
@@ -163,7 +167,7 @@ The application handles common problems without crashing:
 - Incomplete or invalid AI response: displays an error instead of showing incomplete results.
 - Token-limit response: warns the user and avoids displaying an incomplete assessment.
 
-## Limitations
+## Scope and Considerations
 
 - The application analyzes only the S.M.A.R.T. information supplied in the pasted report.
 - A single report is a snapshot and cannot establish a deterioration trend.
